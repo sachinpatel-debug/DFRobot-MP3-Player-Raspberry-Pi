@@ -10,6 +10,8 @@
 
 import serial
 from time import sleep
+
+ser = serial.Serial('/dev/serial0', 9600, timeout = 1)
 class MP3Player:
     start_byte = 0x7E #something like this
     version = 0xFF #you can query the software version with cmd 0x46
@@ -25,64 +27,66 @@ class MP3Player:
         self.param_low = 0x00
         self.cmd = 0x00
         self.feedback = 0x00
-        self.resetModule()
-        self.specifyEqualizer()
-        self.specifyPlaybackSource()
+        #print(type(self.start_byte))
+        #self.resetModule()
+        #sleep(0.1)
+        #self.specifyEqualizer()
+        #sleep(0.1)
+        #self.specifyPlaybackSource()
 
     def playNext(self, feedback=0):
-        self.feedback = hex(feedback)
+        #self.feedback = hex(feedback)
         self.cmd = 0x01
         self.param_high = 0x00
         self.param_low = 0x00
         self.sendStack()
         
     def playPrevious(self, feedback=0):
-        self.feedback = hex(feedback)
+        #self.feedback = hex(feedback)
         self.cmd = 0x02
         self.param_low = 0x00
         self.param_high = 0x00
-        self.sendStack(self)
+        self.sendStack()
 
     def playTrackNumber(self, trackNumber, feedback = 0): #changes the volume to the specified number. volume can be from 0-30
         if trackNumber < 0:
-            desiredVolume = 0
-        elif desiredVolume > 2999:
-            desiredVolume = 2999
+            trackNumber = 0
+        elif trackNumber > 2999:
+            trackNumber = 2999
         self.param_high = (trackNumber >> 8) & 0xFF
         self.param_low = trackNumber & 0xFF
         self.cmd = 0x03 #command to play track number
-        self.feedback = hex(feedback)
-        self.sendStack(self)    
+        #self.feedback = hex(feedback)
+        self.sendStack()    
 
     def increaseVolume(self, feedback = 0):
-        self.feedback = hex(feedback)
+        #self.feedback = hex(feedback)
         self.cmd = 0x04
         self.param_high = 0x00
         self.param_low = 0x00
-        self.sendStack(self)
+        self.sendStack()
 
     def decreaseVolume(self, feedback = 0):
-        self.feedback = hex(feedback)
         self.cmd = 0x05
         self.param_high = 0x00
         self.param_low = 0x00
-        self.sendStack(self)
+        self.sendStack()
 
     def changeVolumeTo(self, desiredVolume, feedback = 0): #changes the volume to the specified number. volume can be from 0-30
         if desiredVolume < 0:
             desiredVolume = 0
         elif desiredVolume > 30:
             desiredVolume = 30
-        self.param_low = hex(desiredVolume)
+        self.param_low = desiredVolume
         self.cmd = 0x06 #cmd to change volume to a specific number (number is determined by parameters)
-        self.feedback = hex(feedback)
-        self.sendStack(self)
+        
+        self.sendStack()
 
     def specifyEqualizer(self, feedback = 0):
-        self.feedback = hex(feedback)
         self.cmd = 0x07
         if 0 <= self.EQ <= 5:
-            self.param_low = hex(self.EQ)
+            self.param_low = self.EQ
+            print(f"for specify equalizer, param_low is type {type(self.param_low)}")
         else: 
             raise IndexError("Please enter a value between 0 and 5 (inclusive)") #EQ specifies the style of music (it does this by controlling the volume of specific frequencies 0 is normal, 1 is pop, 2 is Rock, 3 is Jazz, 4 is classic, and 5 is base)
 
@@ -93,34 +97,32 @@ class MP3Player:
         self.feedback = hex(feedback)
         self.cmd = 0x08
         if 0 <= mode <= 3:
-            self.param_low = hex(mode)
+            self.param_low = mode
         else:
             raise IndexError("Please enter a value between 0 and 3 (inclusive)") #0=repeat, 1=folder repeat, 2=single repeat, 3=random
         self.param_high = 0x00
-        self.sendStack(self)
+        self.sendStack()
     
     def specifyPlaybackSource(self, feedback = 0):
-        self.feedback = hex(feedback)
         self.cmd = 0x09
         if 0 <= self.media_type <= 4:
-            self.param_low = hex(self.media_type)
+            self.param_low = self.media_type
         else:
             raise IndexError("Please enter a value between 0 and 4 (inclusive)") #0=U, 1= TF(tf is mini sd card which is what we use), 2=Aux, 3=sleep,4=flash
         self.param_high = 0x00
         self.sendStack()
     
     def standbyMode(self, feedback = 0): #command to go into low power mode
-        self.feedback = hex(feedback)
         self.cmd = 0x0A
         self.param_high = 0x00
         self.param_low = 0x00
-        self.sendStack(self)
+        self.sendStack()
     
     def normalWorkingMode(self): #put the module back into normal mode from low power mode? idk, use this at our peril
         self.cmd = 0x0B
         self.param_high = 0x00
         self.param_low = 0x00
-        self.sendStack(self)
+        self.sendStack()
 
     def resetModule(self):
         self.cmd = 0x0C
@@ -132,50 +134,53 @@ class MP3Player:
         self.cmd = 0x0D
         self.param_high = 0x00
         self.param_low = 0x00
-        self.sendStack(self)
+        self.sendStack()
     
     def pause(self):
         self.cmd = 0x0E
         self.param_high = 0x00
         self.param_low = 0x00
-        self.sendStack(self)
+        self.sendStack()
     
     def specifyFolderPlayback(self, folder = 1): #specify the folder to playback
         self.cmd = 0x0F
         self.param_high = 0x00
         if 1 <= folder <= 10:
-            self.param_low = hex(folder)
+            self.param_low = folder
         else:
             raise IndexError("Please enter a folder number btwn 1 and 10")
-
+        self.sendStack()
 
     def repeatPlay(self, start = 1): #start input parameter must equal 1 or 0
         self.cmd = 0x11
         self.param_high = 0x00
         if 0 <= start <= 1:
-            self.param_low = hex(start)
+            self.param_low = start
         else:
             raise IndexError("Please enter either 0 or 1 (0 to stop play and 1 to start repeating play)")
-
+        self.sendStack()
     
         
     def sendStack(self): #this sends the chain of UART signals
+        print(f"command is type {type(self.cmd)}")
+        print(f"param_high is type {type(self.param_high)}")
+        print(f"command is type {type(self.param_low)}")
+        self.feedback = 0x00
+        self.length = 0x06
         checksum = 0xFFFF - (self.version + self.length + self.cmd + self.feedback + self.param_high + self.param_low) + 1
         self.checksum_high = (checksum >> 8) & 0xFF
         self.checksum_low = checksum & 0xFF
-        self.feedback = 0x00
         frame = serial.to_bytes(bytes([self.start_byte,self.version,self.length,self.cmd,self.feedback,self.param_high,self.param_low,self.checksum_high,self.checksum_low, self.end_byte]))
         # frame = bytes([self.start_byte,self.version,self.length,self.cmd,self.feedback,self.param_high,self.param_low,self.checksum_high,self.checksum_low, self.end_byte])
 
         print(frame)
-        #ser.write(frame)       
+        ser.write(frame)       
 
     
 
     
-#ser = serial.Serial('\dev\serial0', 9600, timeout = 1)
 dfrobot = MP3Player()
 dfrobot.changeVolumeTo(25)
-        
+dfrobot.playTrackNumber(1)
 
 
